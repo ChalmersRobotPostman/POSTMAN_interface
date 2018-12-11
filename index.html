@@ -1,0 +1,446 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script src="roslib.js"></script>
+
+<script>
+  // Connecting to ROS
+  // -----------------
+  var ros = new ROSLIB.Ros();
+
+  // If there is an error on the backend, an 'error' emit will be emitted.
+  ros.on('error', function(error) {
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('error').style.display = 'inline';
+    console.log(error);
+  });
+
+  // Find out exactly when we made a connection.
+  ros.on('connection', function() {
+    console.log('Connection made!');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('closed').style.display = 'none';
+    document.getElementById('connected').style.display = 'inline';
+  });
+
+  ros.on('close', function() {
+    console.log('Connection closed.');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('connected').style.display = 'none';
+    document.getElementById('closed').style.display = 'inline';
+  });
+
+  // Create a connection to the rosbridge WebSocket server.
+  ros.connect('ws://localhost:9090');
+
+  // Publishing a Topic
+  // ------------------
+   // First, we create a Topic object with details of the topic's name and message type.
+  var cmdVel = new ROSLIB.Topic({
+    ros : ros,
+    name : '/cmd_vel',
+    messageType : 'geometry_msgs/Twist'
+  });
+
+  var testStr = new ROSLIB.Topic({
+    ros : ros,
+    name : '/goals',
+    messageType : 'std_msgs/String'
+  });
+
+ 
+
+  function ToBalazs(){
+
+     // Then we create the payload to be published. The object we pass in to ros.Message matches the
+  // fields defined in the geometry_msgs/Twist.msg definition.
+
+  //var String = new ROSLIB.Message({'hello, world'});
+ 
+ var str = new ROSLIB.Message({
+      data:'hello'
+      });
+  // And finally, publish.
+  
+    console.log('Going to Balasz ground floor');
+    console.log('Published ..........');
+    //var audio = new Audio('Balazsmp3.mp3');
+    //audio.play();
+    testStr.publish(str);
+    document.getElementById("direction").innerHTML = " <h3> <strong>ROLLING MY WAY TO BALAZS</strong> </h3>  ";
+  }
+
+  function ToJanitor(){
+
+ // Then we create the payload to be published. The object we pass in to ros.Message matches the
+  // fields defined in the geometry_msgs/Twist.msg definition.
+  var str = new ROSLIB.Message({
+      data:'hi'
+      });
+  // And finally, publish.
+  
+    console.log('Going to Balasz 5th floor');
+    console.log('Published ..........');
+    //var audio = new Audio('Balazsmp3.mp3');
+    //audio.play();
+    testStr.publish(str);;
+    document.getElementById("direction").innerHTML = " <h3> <strong>ROLLING MY WAY TO GET SOME MAIL</strong> </h3>  ";
+
+    }
+
+
+  function ToElevator(){
+
+ // Then we create the payload to be published. The object we pass in to ros.Message matches the
+  // fields defined in the geometry_msgs/Twist.msg definition.
+  var twist = new ROSLIB.Message({
+    linear : {
+      x : 3,
+      y : 3,
+      z : 3
+    },
+    angular : {
+      x : -0.1,
+      y : -0.2,
+      z : -0.3
+    }
+  });
+    console.log('Driving into the elevator');
+    //var audio = new Audio('Balazsmp3.mp3');
+    //audio.play();
+    cmdVel.publish(twist);
+    document.getElementById("direction").innerHTML = " <h3> <strong>ROLLING INTO THE ELEVATOR</strong> </h3>  ";
+
+    }
+
+
+  function FromElevator(){
+
+ // Then we create the payload to be published. The object we pass in to ros.Message matches the
+  // fields defined in the geometry_msgs/Twist.msg definition.
+  var twist = new ROSLIB.Message({
+    linear : {
+      x : 4,
+      y : 4,
+      z : 4
+    },
+    angular : {
+      x : -0.1,
+      y : -0.2,
+      z : -0.3
+    }
+  });
+    console.log('Driving out of the elevator');
+    //var audio = new Audio('Balazsmp3.mp3');
+    //audio.play();
+    cmdVel.publish(twist);
+    document.getElementById("direction").innerHTML = " <h3> <strong>ROLLING OUT OF THE ELEVATOR</strong> </h3>  ";
+
+    }
+
+
+
+
+
+
+
+
+  //Subscribing to a Topic
+  //----------------------
+
+  // Like when publishing a topic, we first create a Topic object with details of the topic's name
+  // and message type. Note that we can call publish or subscribe on the same topic object.
+  var listener = new ROSLIB.Topic({
+    ros : ros,
+    name : '/listener',
+    messageType : 'std_msgs/String'
+  });
+
+  // Then we add a callback to be called every time a message is published on this topic.
+  listener.subscribe(function(message) {
+    console.log('Received message on ' + listener.name + ': ' + message.data);
+    
+    document.getElementById("direction").innerHTML = " <h3> <strong>RECIEVED A MESSAGE</strong> </h3>  ";
+
+
+    // If desired, we can unsubscribe from the topic as well.
+    listener.unsubscribe();
+  });
+
+  
+  // Advertising a Service
+  // ---------------------
+
+  // The Service object does double duty for both calling and advertising services
+  var setBoolServer = new ROSLIB.Service({
+    ros : ros,
+    name : '/set_bool',
+    serviceType : 'std_srvs/SetBool'
+  });
+
+  // Use the advertise() method to indicate that we want to provide this service
+  setBoolServer.advertise(function(request, response) {
+    console.log('Received service request on ' + setBoolServer.name + ': ' + request.data);
+    response['success'] = true;
+    response['message'] = 'Set successfully';
+    return true;
+  });
+
+  // Setting a param value
+  // ---------------------
+
+  ros.getParams(function(params) {
+    console.log(params);
+  });
+
+  // First, we create a Param object with the name of the param.
+  var maxVelX = new ROSLIB.Param({
+    ros : ros,
+    name : 'max_vel_y'
+  });
+
+  //Then we set the value of the param, which is sent to the ROS Parameter Server.
+  maxVelX.set(0.8);
+  maxVelX.get(function(value) {
+    console.log('MAX VAL: ' + value);
+  });
+
+  // Getting a param value
+  // ---------------------
+
+  var favoriteColor = new ROSLIB.Param({
+    ros : ros,
+    name : 'favorite_color'
+  });
+
+  favoriteColor.set('red');
+  favoriteColor.get(function(value) {
+    console.log('My robot\'s favorite color is ' + value);
+  });
+</script>
+ 
+
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <!--[if IE]>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <![endif]-->
+    <title>ROBOT POSTMAN</title>
+    <!-- BOOTSTRAP CORE STYLE  -->
+    <link href="assets/css/bootstrap.css" rel="stylesheet" />
+    <!-- FONT AWESOME STYLE  -->
+    <link href="assets/css/font-awesome.css" rel="stylesheet" />
+    <!-- CUSTOM STYLE  -->
+    <link href="assets/css/style.css" rel="stylesheet" />
+    <!-- GOOGLE FONT -->
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css' />
+
+</head>
+
+
+     <!-- MENU SECTION END-->
+    <div class="content-wrapper">
+         <div class="container">
+        <div class="row pad-botm">
+            <div class="col-md-12">
+                <h3 class="header-line">DASHBOARD</h3>
+                </div>
+                
+ 
+
+
+
+<!------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!-- START OF 4 TOP BUTTONS-->
+
+
+
+
+        
+             
+             <div class="row">
+              <style> 
+.div1 {
+    width: 250px;
+    height: 350px;
+    border: 3px solid blue;
+}
+
+.button2:hover {
+    box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+}
+
+.bordercolor1 {
+    border-color: Chocolate;
+}
+
+.bordercolor2 {
+    border-color: ForestGreen;
+}
+
+.bordercolor3 {
+    border-color: DarkCyan;
+}
+
+.bordercolor4 {
+    border-color: OrangeRed;
+}
+    
+.div2 {
+    width: 300px;
+    height: 100px;    
+    padding: 50px;
+    border: 1px solid red;
+    box-sizing: border-box;
+}
+
+.center {
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
+    height: 50%;
+}
+
+.responsive {
+    padding: 0 6px;
+    float: left;
+    width: 24.99999%;
+}
+
+@media only screen and (max-width: 700px){
+    .responsive {
+        width: 49.99999%;
+        margin: 6px 0;
+    }
+}
+
+@media only screen and (max-width: 500px){
+    .responsive {
+        width: 100%;
+    }
+}
+
+
+#absolute {
+margin-left: auto;
+margin-right: auto;
+bottom: auto;
+left: 0;
+}
+}
+
+
+</style>
+
+
+
+              
+            <!-- BALAZS BOX BEGINNING------------>
+                 <div class="col-md-3 col-sm-3 col-xs-6">
+
+                  
+                      <div class="div1 bordercolor1 button2 testing alert alert-success back-widget-set text-center">
+                            <i <button type="img" src="Balazs.png" onclick="ToBalazs()" class="" id="Balazs"><img src="Balazs.png" alt=""></button></i>
+
+                      <div id="absolute"> <h3>  GO TO BALAZS </h3>  </div> 
+                        </div>
+                    </div>
+            <!-- BALAZS BOX END ------------>   
+
+            <!-- GO GET MAIL BOX BEGINNING------------>       
+              <div class="col-md-3 col-sm-3 col-xs-6">
+                      <div class="div1 bordercolor2 button2 alert alert-success back-widget-set text-center">
+                            <i<button type="img" src="mail.png" onclick="ToJanitor()"  class="p-1 bg-dark" id="Balazs"><img src="mail.png" alt=""></button></i>
+                            
+                            <div id="absolute"> <h3> GO GET THE MAIL </h3>  </div>
+                        </div>
+                    </div>
+
+            <!-- GO GET MAIL BOX END ------------>  
+
+            <!-- GO INTO THE ELEVATOR BOX BEGINNING------------>   
+
+                <div class="col-md-3 col-sm-3 col-xs-6">
+                      <div class="div1 bordercolor4 button2  alert alert-success back-widget-set text-center">
+                            <i<button type="img" src="open_elevator" onclick="ToElevator()"  class="p-1 bg-dark" id="Balazs"><img src="open_elevator.png" alt=""></button></i>
+                         
+                            <div id="absolute"> <h3> GO INTO THE ELEVATOR </h3></div>
+                        </div>
+                    </div>
+
+            <!-- GO INTO THE ELEVATOR BOX END ------------>
+
+            <!-- GO OUT OF THE ELEVATOR BOX BEGINNING------------>     
+
+              <div class="col-md-3 col-sm-3 col-xs-6">
+                      <div class="div1 bordercolor3 button2 alert alert-success back-widget-set text-center">
+                            <i<button type="img" src="leave_elevator.png" onclick="FromElevator()"  class="p-1 bg-dark" id="Balazs"><img src="leave_elevator.png" alt=""></button></i>
+                         
+                            <div id="absolute"> <h3> GO OUT OF THE ELEVATOR</h3> </div>
+                        </div>
+                    </div>
+         <!-- GO OUT OF THE ELEVATOR BOX END------------>  
+
+
+
+         <!-- NOTICIFATION BOX START------------>  
+             <div class="row">
+              <div class="col-xs-12">
+                <div class="col-md-4 col-sm-4 col-xs-12">
+                  <div class="panel panel-primary ">
+                        <div class="panel-heading">
+                           <h3> <strong>NOTIFICATIONS</strong> </h3>
+                        </div>
+                        <div id="direction" class=" alert alert-warning"> <h3> 
+              <strong>Success!</strong> You should <a href="#" class="alert-link">read this message</a>. </h3>
+            </div>
+    <!-- NOTICIFATION BOX END ------------>  
+
+
+    <!-- STATUS INDICATOR--------->
+    <div class="row-5 col-md-4">
+     <div id="statusIndicator">
+      <p id="connecting">Connecting to rosbridge...</p>
+      <p id="connected" style="color:#00D600; display:none"> Connected</p>
+      <p id="error" style="color:#FF0000; display:none"> Error in the backend! </p>
+      <p id="closed" style="display:none"> Connection closed.</p>
+     </div>
+   </div>
+<!-- STATUS INDICATOR- END-------->
+
+
+    <!-- JAVASCRIPT FILES PLACED AT THE BOTTOM TO REDUCE THE LOADING TIME  -->
+    <!-- CORE JQUERY  -->
+    <script src="assets/js/jquery-1.10.2.js"></script>
+    <!-- BOOTSTRAP SCRIPTS  -->
+    <script src="assets/js/bootstrap.js"></script>
+      <!-- CUSTOM SCRIPTS  -->
+    <script src="assets/js/custom.js"></script>
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <!-- <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
+    <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+    <script src="https://static.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+    <script src="https://static.robotwebtools.org/keyboardteleopjs/current/keyboardteleop.min.js"></script>
+    <!--
+     <script src="webui.js"></script>
+
+    <script src="//yoannmoinet.github.io/nipplejs/javascripts/nipplejs.js"></script>
+  
+    
+
+
+-->
+
+</body>
+</html>
+
